@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback - Quotes & Facts of Elegance</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: radial-gradient(circle at bottom, #000, #111);
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 {
+      color: gold;
+      text-shadow: 0 0 10px gold;
+    }
+
+    input, textarea {
+      width: 80%;
+      max-width: 500px;
+      border-radius: 10px;
+      border: none;
+      padding: 10px;
+      font-size: 1rem;
+      outline: none;
+      margin-top: 10px;
+    }
+
+    textarea {
+      height: 120px;
+      resize: none;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 25px;
+      background: gold;
+      color: black;
+      border: none;
+      border-radius: 30px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: white;
+    }
+
+    .rating {
+      margin: 10px 0;
+    }
+
+    .star {
+      font-size: 30px;
+      color: gray;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .star.selected, .star:hover, .star:hover ~ .star {
+      color: gold;
+    }
+
+    .feedback-list {
+      margin-top: 30px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left;
+    }
+
+    .feedback-item {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    .feedback-item strong {
+      color: gold;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 20px;
+      color: gold;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Share Your Feedback</h1>
+
+  <input type="text" id="name" placeholder="Your Name"><br>
+  <textarea id="feedbackText" placeholder="Write your thoughts here..."></textarea>
+
+  <div class="rating" id="rating">
+    <span class="star" data-value="1">★</span>
+    <span class="star" data-value="2">★</span>
+    <span class="star" data-value="3">★</span>
+    <span class="star" data-value="4">★</span>
+    <span class="star" data-value="5">★</span>
+  </div>
+
+  <button onclick="submitFeedback()">Submit</button>
+
+  <div class="feedback-list" id="feedbackList">Loading feedback...</div>
+
+  <a href="index.html" class="back-link">← Back to Home</a>
+
+  <script>
+    const binId = "6911e8b2ae596e708f505b48";
+    const apiUrl = `https://api.jsonbin.io/v3/b/${binId}`;
+    const masterKey = ""; // leave empty if your bin is public
+    let selectedRating = 0;
+
+    // Star rating logic
+    document.querySelectorAll('.star').forEach(star => {
+      star.addEventListener('click', () => {
+        selectedRating = star.dataset.value;
+        document.querySelectorAll('.star').forEach(s => s.style.color = s.dataset.value <= selectedRating ? 'gold' : 'gray');
+      });
+    });
+
+    async function loadFeedback() {
+      try {
+        const res = await fetch(apiUrl, { headers: { "X-Master-Key": masterKey } });
+        const data = await res.json();
+        const feedbacks = data.record || [];
+        showFeedback(feedbacks);
+      } catch {
+        document.getElementById("feedbackList").innerHTML = "⚠️ Error loading feedbacks.";
+      }
+    }
+
+    function showFeedback(feedbacks) {
+      const list = document.getElementById("feedbackList");
+      list.innerHTML = "";
+      feedbacks.slice().reverse().forEach(fb => {
+        const div = document.createElement("div");
+        div.className = "feedback-item";
+        div.innerHTML = `<strong>${fb.name || "Anonymous"}</strong> ⭐${fb.rating || 0}/5<br>${fb.text}`;
+        list.appendChild(div);
+      });
+    }
+
+    async function submitFeedback() {
+      const name = document.getElementById("name").value.trim() || "Anonymous";
+      const text = document.getElementById("feedbackText").value.trim();
+      if (!text) return alert("Please write something!");
+      if (selectedRating === 0) return alert("Please select a star rating!");
+
+      const res = await fetch(apiUrl, { headers: { "X-Master-Key": masterKey } });
+      const data = await res.json();
+      const feedbacks = data.record || [];
+
+      feedbacks.push({ name, text, rating: selectedRating });
+
+      await fetch(apiUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "X-Master-Key": masterKey },
+        body: JSON.stringify(feedbacks)
+      });
+
+      document.getElementById("name").value = "";
+      document.getElementById("feedbackText").value = "";
+      document.querySelectorAll('.star').forEach(s => s.style.color = 'gray');
+      selectedRating = 0;
+
+      showFeedback(feedbacks);
+    }
+
+    loadFeedback();
+  </script>
+</body>
+</html>
